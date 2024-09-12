@@ -38,6 +38,7 @@ We welcome contributions from the community. Feel free to submit pull requests o
 
 ## Support
 
+
 If you find this tool useful and would like to support its development, consider supporting the project [here](https://buymeacoffee.com/oscarch).
 
 ## Notes for Developers
