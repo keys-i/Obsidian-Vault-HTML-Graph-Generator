@@ -1,0 +1,115 @@
+name: Build and Release Obsidian Vault HTML Graph Generator
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Package for Different OS
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'  # You can specify the Python version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the Obsidian Vault HTML Graph Generator
+        run: |
+          python Obsidian-Vault-HTML-Graph-Generator.py
+
+      - name: Build application on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y fpm
+          fpm -s python -t deb -v 1.0 Obsidian-Vault-HTML-Graph-Generator.py
+          fpm -s python -t rpm -v 1.0 Obsidian-Vault-HTML-Graph-Generator.py
+          mkdir dist
+          mv *.deb dist/
+          mv *.rpm dist/
+
+      - name: Build application on Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          pip install pyinstaller
+          pyinstaller --onefile Obsidian-Vault-HTML-Graph-Generator.py
+          mkdir dist
+          mv dist/Obsidian-Vault-HTML-Graph-Generator.exe dist/
+
+      - name: Build application on macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install create-dmg
+          pyinstaller --onefile Obsidian-Vault-HTML-Graph-Generator.py
+          mkdir dist
+          create-dmg dist/Obsidian-Vault-HTML-Graph-Generator.app dist/
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v3
+        with:
+          name: ObsidianVaultGraphGenerator-${{ matrix.os }}
+          path: dist/
+
+  create_release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Obsidian Vault HTML Graph Generator ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload release assets for Linux
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.deb
+          asset_name: ObsidianVaultGraphGenerator.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload RPM Release Asset for Linux
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.rpm
+          asset_name: ObsidianVaultGraphGenerator.rpm
+          asset_content_type: application/x-rpm
+
+      - name: Upload Windows Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.exe
+          asset_name: ObsidianVaultGraphGenerator.exe
+          asset_content_type: application/x-msdownload
+
+      - name: Upload macOS Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.dmg
+          asset_name: ObsidianVaultGraphGenerator.dmg
+          asset_content_type: application/x-apple-diskimage
