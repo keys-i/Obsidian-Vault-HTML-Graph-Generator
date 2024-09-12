@@ -1,9 +1,9 @@
 name: Build and Release Obsidian Vault HTML Graph Generator
 
 on:
-  push:
-    tags:
-      - 'v*'
+  push:  # Trigger on every push to the repository
+    branches:
+      - '**'  # This will trigger on all branches. You can specify specific branches if needed.
 
 jobs:
   build:
@@ -77,8 +77,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Obsidian Vault HTML Graph Generator ${{ github.ref }}
+          tag_name: ${{ github.sha }}  # Use the commit hash as the tag
+          release_name: Obsidian Vault HTML Graph Generator ${{ github.sha }}
           draft: false
           prerelease: false
 
